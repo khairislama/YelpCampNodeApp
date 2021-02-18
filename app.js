@@ -8,6 +8,7 @@ const   bodyParser          = require("body-parser"),
         dotenv              = require("dotenv"),
         app                 = express(),
         Campground          = require("./models/compground"),
+        Comment             = require("./models/comment"),
         seedDb              = require("./seeds");
 
 mongoose.connect("mongodb://localhost/yelp_camp", {useNewUrlParser: true, useUnifiedTopology: true});
@@ -16,7 +17,7 @@ seedDB();
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(expressSanitizer());
 app.use(methodOverride("_method"));
-app.use(express.static("public"));
+app.use(express.static(__dirname + "/public"));
 app.set("view engine", "ejs");
 dotenv.config();
 
@@ -29,13 +30,13 @@ app.get("/campgrounds", (req, res)=>{
         if(err){
             console.log(err);
         }else{
-            res.render("index", {campgrounds: allCampgrounds});
+            res.render("campgrounds/index", {campgrounds: allCampgrounds});
         }
     });
 });
 
 app.get("/campgrounds/new", (req, res)=>{
-    res.render("new");
+    res.render("campgrounds/new");
 });
 
 app.post("/campgrounds", (req, res)=>{
@@ -57,7 +58,39 @@ app.get("/campgrounds/:id", (req, res)=>{
         if(err){
             console.log(err);
         }else{
-            res.render("show", {campground: foundCampground});
+            res.render("campgrounds/show", {campground: foundCampground});
+        }
+    });
+});
+
+// ===============================
+
+app.get("/campgrounds/:id/comments/new", (req, res)=>{
+    Campground.findById(req.params.id, (err, foundCampground)=>{
+        if (err){
+            console.error(err);
+        }else{
+            res.render("comments/new", {campground: foundCampground});
+        }
+    });
+});
+
+app.post("/campgrounds/:id/comments", (req, res)=>{
+    Campground.findById(req.params.id, (err, campground)=>{
+        if(err){
+            console.error(err);
+            res.redirect("/campgrounds");
+        }else{
+            Comment.create(req.body.comment, (err, comment)=>{
+                if (err){
+                    console.error(err);
+                    res.redirect("/campgrounds");
+                }else{
+                    campground.comments.push(comment);
+                    campground.save();
+                    res.redirect(`/campgrounds/${campground._id}`);
+                }
+            });
         }
     });
 });
