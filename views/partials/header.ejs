@@ -30,9 +30,13 @@
           <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
         </form>
         <ul class="navbar-nav navbar-right">
-          <li class="nav-item"><a class="nav-link" href="/">login</a></li>
-          <li class="nav-item"><a class="nav-link" href="/">Sign up</a></li>
-          <li class="nav-item"><a class="nav-link" href="/">logout</a></li>
+          <% if(!currentUser){ %>
+            <li class="nav-item"><a class="nav-link" href="/login">login</a></li>
+            <li class="nav-item"><a class="nav-link" href="/register">Sign up</a></li>
+          <% }else{ %>
+            <li class="nav-item"><a class="nav-link" href="#">Signed In as <%= currentUser.username %></a></li>
+            <li class="nav-item"><a class="nav-link" href="/logout">logout</a></li>
+          <% } %>
         </ul>
       </div>
     </nav>

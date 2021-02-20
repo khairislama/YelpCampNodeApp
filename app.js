@@ -6,9 +6,12 @@ const   bodyParser          = require("body-parser"),
         methodOverride      = require("method-override"),
         expressSanitizer    = require("express-sanitizer"),
         dotenv              = require("dotenv"),
+        passport            = require("passport"),
+        localStrategy       = require("passport-local"),
         app                 = express(),
         Campground          = require("./models/compground"),
         Comment             = require("./models/comment"),
+        User                = require("./models/user"),
         seedDb              = require("./seeds");
 
 mongoose.connect("mongodb://localhost/yelp_camp", {useNewUrlParser: true, useUnifiedTopology: true});
@@ -20,6 +23,23 @@ app.use(methodOverride("_method"));
 app.use(express.static(__dirname + "/public"));
 app.set("view engine", "ejs");
 dotenv.config();
+
+// PASSPORT CONFIGURATION
+app.use(require("express-session")({
+    secret: "yelpcamp is the best website to track the best camp sites in all over tunisia",
+    resave: false,
+    saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(new localStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+app.use((req, res, next)=>{
+    res.locals.currentUser = req.user;
+    next();
+});
 
 app.get("/", (req, res)=>{
     res.render("home");
@@ -65,7 +85,7 @@ app.get("/campgrounds/:id", (req, res)=>{
 
 // ===============================
 
-app.get("/campgrounds/:id/comments/new", (req, res)=>{
+app.get("/campgrounds/:id/comments/new", isLoggedIn, (req, res)=>{
     Campground.findById(req.params.id, (err, foundCampground)=>{
         if (err){
             console.error(err);
@@ -75,7 +95,7 @@ app.get("/campgrounds/:id/comments/new", (req, res)=>{
     });
 });
 
-app.post("/campgrounds/:id/comments", (req, res)=>{
+app.post("/campgrounds/:id/comments", isLoggedIn, (req, res)=>{
     Campground.findById(req.params.id, (err, campground)=>{
         if(err){
             console.error(err);
@@ -94,6 +114,44 @@ app.post("/campgrounds/:id/comments", (req, res)=>{
         }
     });
 });
+
+
+// AUTH ROUTES
+app.get("/register", (req, res)=>{
+    res.render("register");
+});
+app.post("/register", (req, res)=>{
+    var newUser = new User({username: req.body.username});
+    User.register(newUser, req.body.password, (err, user)=>{
+        if(err){
+            console.error(err);
+            return res.render("register");
+        }
+        passport.authenticate("local")(req, res, ()=>{
+            res.redirect("/campgrounds");
+        });
+    });
+});
+
+app.get("/login", (req,res)=>{
+    res.render("login");
+});
+app.post("/login",passport.authenticate("local", {
+    successRedirect: "/campgrounds",
+    failureRedirect: "/login"
+}));
+
+app.get("/logout", (req, res)=>{
+    req.logout();
+    res.redirect("/");
+});
+
+function isLoggedIn(req, res, next){
+    if(req.isAuthenticated()){
+        return next();
+    }
+    res.redirect("/login")
+}
 
 app.listen(process.env.APP_PORT, () =>{
     console.log(`Serving is starting on port : ${process.env.APP_PORT}! `);
