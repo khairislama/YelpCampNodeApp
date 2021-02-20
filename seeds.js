@@ -1,6 +1,7 @@
 const   mongoose    = require("mongoose"),
         Campground  = require("./models/compground"),
-        Comment     = require("./models/comment");
+        Comment     = require("./models/comment"),
+        User        = require("./models/user");
 
 const data = [
     {
@@ -40,15 +41,25 @@ function seedDB(){
                         console.log("added campground");
                         // add comments
                         Comment.create({
-                            text: "This place is greate, but I wish there was internet",
-                            author: "Homer"
+                            text: "This place is greate, but I wish there was internet"
                         }, (err, comment)=>{
                             if(err){
                                 console.log(err);
                             }else{
-                                campground.comments.push(comment);
-                                campground.save();
-                                console.log("comment added successfully");
+                                User.findOne({username: "khairislama"}, (err, user)=>{
+                                    if(err){
+                                        console.error(err);
+                                    }else{
+                                        comment.author.id = user._id;
+                                        comment.author.username = user.username;
+                                        comment.save();
+                                        campground.author.id = user._id;
+                                        campground.author.username = user.username;  
+                                        campground.comments.push(comment);
+                                        campground.save();
+                                        console.log("comment added successfully");                                      
+                                    }
+                                });                            
                             }
                         });
                     }
