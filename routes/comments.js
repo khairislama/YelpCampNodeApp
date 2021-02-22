@@ -1,13 +1,15 @@
 const   express         = require("express"),
         router          = express.Router({mergeParams: true}),
         Campground      = require("../models/compground"),
+        middleware      = require("../middleware/index"),
         Comment         = require("../models/comment");
 
 //show the new comment form
-router.get("/new", isLoggedIn, (req, res)=>{
+router.get("/new", middleware.isLoggedIn, (req, res)=>{
     Campground.findById(req.params.id, (err, foundCampground)=>{
         if (err){
-            console.error(err);
+            req.flash("error", "Campground not found");
+            res.redirect("back");
         }else{
             res.render("comments/new", {campground: foundCampground});
         }
@@ -15,16 +17,16 @@ router.get("/new", isLoggedIn, (req, res)=>{
 });
 
 //handling the creation of the new comment
-router.post("/", isLoggedIn, (req, res)=>{
+router.post("/", middleware.isLoggedIn, (req, res)=>{
     Campground.findById(req.params.id, (err, campground)=>{
         if(err){
-            console.error(err);
-            res.redirect("/campgrounds");
+            req.flash("error", "Campground not found");
+            res.redirect("back");
         }else{
             Comment.create(req.body.comment, (err, comment)=>{
                 if (err){
-                    console.error(err);
-                    res.redirect("/campgrounds");
+                    req.flash("error", "Oops! There is a Database problem!");
+                    res.redirect("back");
                 }else{
                     //add user to comment
                     comment.author.id = req.user._id;
@@ -33,6 +35,7 @@ router.post("/", isLoggedIn, (req, res)=>{
                     comment.save();
                     campground.comments.push(comment);
                     campground.save();
+                    req.flash("success", "Comment added successfully");
                     res.redirect(`/campgrounds/${campground._id}`);
                 }
             });
@@ -41,10 +44,10 @@ router.post("/", isLoggedIn, (req, res)=>{
 });
 
 //EDIT - show the edit form
-router.get("/:comment_id/edit",checkCommentOwnership, (req, res)=>{
+router.get("/:comment_id/edit",middleware.checkCommentOwnership, (req, res)=>{
     Comment.findById(req.params.comment_id, (err, comment)=>{
         if(err){
-            console.error(err);
+            req.flash("error", "Comment not found");
             res.redirect("back");
         }else{
             res.render("comments/edit", {comment: comment, campground_id: req.params.id});
@@ -53,53 +56,29 @@ router.get("/:comment_id/edit",checkCommentOwnership, (req, res)=>{
 });
 
 //UPDATE - the logic to update the comment from the DB
-router.put("/:comment_id", checkCommentOwnership, (req, res)=>{
+router.put("/:comment_id", middleware.checkCommentOwnership, (req, res)=>{
     Comment.findByIdAndUpdate(req.params.comment_id, req.body.comment, (err, comment)=>{
         if(err){
+            req.flash("error", "Comment not found");
             res.redirect("back");
         }else{
+            req.flash("success", "Comment updated successfully");
             res.redirect(`/campgrounds/${req.params.id}`);
         }
     });
 });
 
 //DESTROY - delete our comment
-router.delete("/:comment_id",checkCommentOwnership, (req, res)=>{
+router.delete("/:comment_id", middleware.checkCommentOwnership, (req, res)=>{
     Comment.findByIdAndRemove(req.params.comment_id, (err)=>{
         if(err){
-            console.error(err);
+            req.flash("error", "Comment not found");
             res.redirect("back");
         }else{
+            req.flash("success", "Comment deleted successfully");
             res.redirect(`/campgrounds/${req.params.id}`);
         }
     });
 });
-
-//middleware
-function isLoggedIn(req, res, next){
-    if(req.isAuthenticated()){
-        return next();
-    }
-    res.redirect("/login")
-}
-
-function checkCommentOwnership(req, res, next){
-    if (req.isAuthenticated()){
-        Comment.findById(req.params.comment_id, (err, comment)=>{
-            if (err){
-                console.error(err);
-                res.redirect("back");
-            }else{
-                if (comment.author.id.equals(req.user._id)){
-                    next();
-                }else{
-                    res.redirect("back");
-                }
-            }
-        });  
-    }else{
-        res.redirect("back");
-    }
-}
 
 module.exports = router;
