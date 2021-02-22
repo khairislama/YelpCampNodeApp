@@ -40,6 +40,29 @@ router.post("/", isLoggedIn, (req, res)=>{
     });
 });
 
+//EDIT - show the edit form
+router.get("/:comment_id/edit", (req, res)=>{
+    Comment.findById(req.params.comment_id, (err, comment)=>{
+        if(err){
+            console.error(err);
+            res.redirect("back");
+        }else{
+            res.render("comments/edit", {comment: comment, campground_id: res.params.id});
+        }
+    });    
+});
+
+//UPDATE - the logic to update the comment from the DB
+router.put("/:comment_id", (req, res)=>{
+    Comment.findByIdAndUpdate(req.params.comment_id, req.body.comment, (err, comment)=>{
+        if(err){
+            res.redirect("back");
+        }else{
+            res.redirect(`/campgrounds/${req.params.id}`);
+        }
+    });
+});
+
 //middleware
 function isLoggedIn(req, res, next){
     if(req.isAuthenticated()){
