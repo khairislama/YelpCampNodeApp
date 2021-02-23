@@ -20,8 +20,6 @@ const   commentRoutes       = require("./routes/comments"),
         campgroundRoutes    = require("./routes/campgrounds"),
         authRoutes          = require("./routes/auth");
 
-mongoose.connect("mongodb://localhost/yelp_camp", {useNewUrlParser: true, useUnifiedTopology: true});
-
 seedDB();
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(expressSanitizer());
@@ -31,9 +29,11 @@ app.use(flash());
 app.set("view engine", "ejs");
 dotenv.config();
 
+mongoose.connect(process.env.DATABASE_URL, {useNewUrlParser: true, useUnifiedTopology: true});
+
 // PASSPORT CONFIGURATION
 app.use(require("express-session")({
-    secret: "yelpcamp is the best website to track the best camp sites in all over tunisia",
+    secret: process.env.SECRET_MESSAGE,
     resave: false,
     saveUninitialized: false
 }));
