@@ -21,12 +21,12 @@ const   commentRoutes       = require("./routes/comments"),
         authRoutes          = require("./routes/auth");
 
 seedDB();
+app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(expressSanitizer());
 app.use(methodOverride("_method"));
 app.use(express.static(__dirname + "/public"));
 app.use(flash());
-app.set("view engine", "ejs");
 dotenv.config();
 
 mongoose.connect(process.env.DATABASE_URL, {useNewUrlParser: true, useUnifiedTopology: true});
